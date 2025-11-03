@@ -1,12 +1,16 @@
-name = "jiwonz/release_pesde_action"
+name = "jiwonz/pesde_release"
 version = "0.1.0"
 authors = ["jiwonz <me@jiwonz.kr>"]
-repository = "https://github.com/jiwonz/release-pesde-action"
+repository = "https://github.com/jiwonz/pesde-release"
 license = "MIT"
 
 [target]
 environment = "lune"
 bin = "src/main.luau"
+lib = "src/lib.luau"
 
 [indices]
 default = "https://github.com/pesde-pkg/index"
+
+[dependencies]
+pathfs = { name = "jiwonz/pathfs", version = "^0.6.0" }

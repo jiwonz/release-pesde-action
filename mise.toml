@@ -3,4 +3,4 @@
 
 [tasks.bundle]
 description = "Bundle action code into dist"
-run = "darklua process src dist"
+run = "darklua process src/main.luau dist/main.luau"
