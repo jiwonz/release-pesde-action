@@ -93,4 +93,6 @@ function convertCase.toLower(variableName: string): string
 	return newVariableName
 end
 
+table.freeze(convertCase)
+
 return convertCase
