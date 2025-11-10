@@ -14,3 +14,7 @@ default = "https://github.com/pesde-pkg/index"
 
 [dependencies]
 pathfs = { name = "jiwonz/pathfs", version = "^0.6.0" }
+
+[engines]
+lune = "^0.10.4"
+pesde = "^0.7.1"
