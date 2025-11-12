@@ -1,3 +1,7 @@
+--[=[
+	Type 클래스가 Composable, 싱글톤 클래스가 모두 따로
+]=]
+
 local result = require("./serdeform2/result")
 
 local Type = {}
@@ -6,28 +10,24 @@ local TypeMt = { __index = Type }
 type Parser<T> = (input: unknown) -> result.Result<T>
 
 function Type.new<T>(parser: Parser<T>): Type<T>
-	return setmetatable({ _parser = parser, _t = nil }, TypeMt)
+
 end
 
-function Type.parse<T>(self: Type<T>, input: unknown): result.Result<T>
-	return self._parser(input)
-end
+type Type<T> = setmetatable<{ _t: T }, typeof(TypeMt)>
 
-function Type.parser<T>(self: Type<T>): Parser<T>
-	return self._parser
-end
+local serdeform = {}
 
-function Type.optional<T>(self: Type<T>): Type<T?>
-	local parser: Parser<T?> = function(input: unknown): result.Result<T?>
-		if input == nil then
-			return result.success(nil)
-		else
-			return self:parse(input)
-		end
+do
+	local NumberType = {}
+	local NumberTypeMt = { __index = NumberType }
+
+	function NumberType.new(type: Type<number>): NumberType
+		return setmetatable({ type = type }, NumberTypeMt)
 	end
-	return Type.new(parser)
+
+	type NumberType = setmetatable<{ type: Type<number> }, typeof(NumberTypeMt)>
+
+	serdeform.number = NumberType.new(Type.new(function(input)
+		return result.success(2)
+	end))
 end
-
-type Type<T> = setmetatable<{ read _parser: Parser<T>, read _t: T }, typeof(TypeMt)>
-
--- WIP: Struct type

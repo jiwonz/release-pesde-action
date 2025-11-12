@@ -118,7 +118,7 @@ end
 type function WithClassIdTypeFn(classIdKey: type, tbl: type): type
 	assert(classIdKey:is("singleton"), "ClassIdKey must be a valid singleton")
 	assert(tbl:is("table"), "WithClassId can only be applied to table types")
-	tbl:setreadproperty(classIdKey, UUID())
+	tbl:setreadproperty(classIdKey, types.singleton(nil))
 	return tbl
 end
 
@@ -225,7 +225,7 @@ type function PrivateKey(s: type): type
 	assert(s:is("singleton"), "PrivateKey can only be created from singleton types")
 	local keyStr = s:value()
 	assert(type(keyStr) == "string", "PrivateKey can only be created from string singletons")
-	return types.singleton("_" .. keyStr)
+	return types.singleton("_class@" .. keyStr)
 end
 
 type DefaultClassIdKey = PrivateKey<UUID<>>
