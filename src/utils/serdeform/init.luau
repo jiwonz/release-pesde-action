@@ -1,4 +1,5 @@
 -- TODO: Support error formatter like anyhow lib and Support various naming cases
+-- TODO: what about exposing InferType type function public?
 
 local _result = require("./Result")
 local Result = _result.Result
