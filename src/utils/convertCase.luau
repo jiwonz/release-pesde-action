@@ -1,5 +1,7 @@
 --!native
 
+-- TODO: Make sure is --!native is really necessary here and what about making type function utilities?
+
 local convertCase = {}
 
 local function capitalFirst(str: string): string
