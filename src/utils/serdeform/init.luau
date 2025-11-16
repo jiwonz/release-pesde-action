@@ -1,6 +1,6 @@
 -- TODO: Support error formatter like anyhow lib and Support various naming cases
 -- TODO: what about exposing InferType type function?
--- TODO: what about casting into serdeform Type when decoding?
+-- TODO: what about casting(like between numbers and strings) into serdeform Type when decoding?
 
 local _result = require("./Result")
 local Result = _result.Result
