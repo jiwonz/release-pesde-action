@@ -1,6 +1,5 @@
 -- TODO: Support error formatter like anyhow lib and Support various naming cases
 -- TODO: what about exposing InferType type function?
--- TODO: what about casting(like between numbers and strings) into serdeform Type when decoding?
 
 local _result = require("./Result")
 local Result = _result.Result
@@ -34,6 +33,14 @@ type ParserFromType<T> = ParserFromTypeTypeFn<TypeByTypeName, T>
 
 local function typeFromTypeName<T>(typeName: T & keyof<TypeByTypeName>): Type<ParserFromType<T>>
 	return Type.new(function(input: unknown): Result<any>
+		if typeName == 'number' then
+			local casted = tonumber(input)
+			if casted then
+				input = casted
+			end
+		elseif typeName == 'boolean' then
+			input = booleanByStrings[tostring(input)]
+		end
 		if type(input) == typeName then
 			return Result.ok(input)
 		else
