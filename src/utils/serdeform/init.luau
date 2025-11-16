@@ -1,3 +1,5 @@
+-- TODO: Support error formatter like anyhow lib and Support various naming cases
+
 local _result = require("./Result")
 local Result = _result.Result
 local Type = require("@self/Type")
