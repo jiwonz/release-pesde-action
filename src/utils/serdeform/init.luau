@@ -1,6 +1,3 @@
--- TODO: Support error formatter like anyhow lib and Support various naming cases
--- TODO: what about exposing InferType type function?
-
 local _result = require("./Result")
 local Result = _result.Result
 local Type = require("@self/Type")
@@ -31,6 +28,11 @@ end
 
 type ParserFromType<T> = ParserFromTypeTypeFn<TypeByTypeName, T>
 
+local booleanByStrings = {
+	["true"] = true,
+	["false"] = false,
+}
+
 local function typeFromTypeName<T>(typeName: T & keyof<TypeByTypeName>): Type<ParserFromType<T>>
 	return Type.new(function(input: unknown): Result<any>
 		if typeName == 'number' then
@@ -54,14 +56,14 @@ serdeform.string = typeFromTypeName('string')
 serdeform.boolean = typeFromTypeName('boolean')
 serdeform.table = typeFromTypeName('table')
 serdeform.none = typeFromTypeName('nil')
-type function InferType(t: type): type
+export type function InferType(t: type): type
 	assert(t:is("table"), "type must be a table")
 	local prop = t:readproperty(types.singleton("_$type"))
 	assert(prop, "TypeKey is not found")
 	return prop
 end
 
-type function FormType(schema: type): type
+export type function FormType(schema: type): type
 	assert(schema:is("table"), "schema must be table")
 	local props: { [type]: type } = {}
 	for prop, val in schema:properties() do
@@ -72,6 +74,52 @@ type function FormType(schema: type): type
 		props[prop] = InferType(val)
 	end
 	return types.newtable(props)
+end
+
+--- FIXME: rollback to previous version after luau fixes this(https://github.com/luau-lang/luau/issues/2094)
+function serdeform.infer<T>(schema: T): FormType<T>
+	return schema
+end
+
+local function define<T>(schema: T, strict: boolean): Type<T>
+	return Type.new(function(input: unknown): Result<{ [any]: any }>
+		if type(input) ~= "table" then
+			return Result.fail(`Expected table, got {typeof(input)}`)
+		end
+
+		local output: { [any]: any } = {}
+
+		for prop, val in schema :: { [string]: Type<any>? } do
+			if val == nil then
+				return Result.fail(`Missing property: {prop}`)
+			end
+			local result = val:parse((input :: { [any]: any })[prop])
+			if result.ok then
+				output[prop] = result.value
+			else
+				return Result.fail(`In property '{prop}': {result:format()}`)
+			end
+		end
+
+		if strict then
+			for key, _ in input :: { [any]: any } do
+				if type(key) == "string" and (schema :: { [string]: Type<any>? })[key] == nil then
+					return Result.fail(`Unexpected property: {key}`)
+				end
+			end
+		end
+
+		return Result.ok(output)
+	end) :: any
+end
+
+function serdeform.define<T>(schema: T): Type<T>
+	return define(schema, false)
+end
+
+--- This doesn't allow extra properties
+function serdeform.strictDefine<T>(schema: T): Type<T>
+	return define(schema, true)
 end
 
 local function form<T>(schema: T, strict: boolean): Type<FormType<T>>
@@ -141,14 +189,26 @@ function deepEqual(obj1: any, obj2: any)
     return true
 end
 
-function serdeform.literal<T>(value: T): Type<T>
-	return Type.new(function(input: unknown): Result<T>
+local cacheLiterals: { [any]: Type<any> } = {}
+
+function serdeform.literal<T>(value: T, noCache: true?): Type<T>
+	if not noCache then
+		local cached = cacheLiterals[value]
+		if cached then
+			return cached
+		end
+	end
+	local newType = Type.new(function(input: unknown): Result<T>
 		if deepEqual(input, value) then
 			return Result.ok(value)
 		else
 			return Result.fail(`Expected literal value {formatLiternal(value)}, got {formatLiternal(input)}`)
 		end
 	end)
+	if not noCache then
+		cacheLiterals[value] = newType
+	end
+	return newType
 end
 
 function serdeform.any(): Type<any>
@@ -225,7 +285,7 @@ type function UnionTypeTypeFn<T...>(packFn: type): type
 	return types.unionof(unpack(unionTypes))
 end
 
-type UnionType<T...> = UnionTypeTypeFn<(T...) -> ()>
+export type UnionType<T...> = UnionTypeTypeFn<(T...) -> ()>
 
 function serdeform.union<T...>(...: T...): Type<UnionType<T...>>
 	local unionTypes = { ... } :: { Type<any> }
@@ -245,8 +305,15 @@ function serdeform.union<T...>(...: T...): Type<UnionType<T...>>
 	end) :: any
 end
 
-function serdeform.custom<T>(parser: (input: unknown) -> Result<T>): Type<T>
-	return Type.new(parser)
+function serdeform.custom<T>(customParser: (input: unknown) -> T): Type<T>
+	return Type.new(function(input: unknown): Result<T>
+		local success, result = pcall(customParser, input)
+		if success then
+			return Result.ok(result)
+		else
+			return Result.fail(`Custom parser failed: {tostring(result)}`)
+		end
+	end)
 end
 
 return table.freeze(serdeform)

@@ -18,7 +18,6 @@ function Type.parse<T>(self: Type<T>, input: unknown): Result<T>
 		local camelCaseTbl: { [any]: any } = {}
 		for key, value in input do
 			if type(key) ~= "string" then
-				-- return Result.fail("Expected table with string keys, got key of type " .. typeof(key))
 				camelCaseTbl[key] = value
 				continue
 			end
