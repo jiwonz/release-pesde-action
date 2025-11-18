@@ -163,7 +163,8 @@ function serdeform.strictForm<T>(schema: T): Type<FormType<T>>
 	return form(schema, true)
 end
 
-local function formatLiternal<T>(value: T): string
+-- TODO: use lute's pp.luau instead (maybe after packaging it)
+local function formatLiteral<T>(value: T): string
 	if type(value) == "string" then
 		return `"{value}"`
 	else
@@ -202,7 +203,7 @@ function serdeform.literal<T>(value: T, noCache: true?): Type<T>
 		if deepEqual(input, value) then
 			return Result.ok(value)
 		else
-			return Result.fail(`Expected literal value {formatLiternal(value)}, got {formatLiternal(input)}`)
+			return Result.fail(`Expected literal value {formatLiteral(value)}, got {formatLiteral(input)}`)
 		end
 	end)
 	if not noCache then
