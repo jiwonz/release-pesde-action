@@ -4,17 +4,24 @@ local types = require("./types")
 type Reason = types.Reason
 
 local Error = {}
-local ErrorMt = {
+local ErrorMetatable = table.freeze({
 	__index = Error,
 	__tostring = function(self: Error): string
 		return self:toString()
 	end
-}
+})
 
+export type Error = setmetatable<{
+	read reason: Reason,
+	read source: Error?
+}, typeof(ErrorMetatable)>
+
+--- Checks if a value is an Error
 local function isError(value: unknown): boolean
-	return type(value) == "table" and getmetatable(value) == ErrorMt
+	return type(value) == "table" and getmetatable(value) == ErrorMetatable
 end
 
+--- Constructs a new Error
 local function constructError(reason: Error | Reason, source: (Error | Reason)?): Error
 	local processedSource: Error? = nil
 	if source then
@@ -29,9 +36,10 @@ local function constructError(reason: Error | Reason, source: (Error | Reason)?)
 	return setmetatable({
 		reason = reason,
 		source = processedSource,
-	}, ErrorMt)
+	}, ErrorMetatable)
 end
 
+--- Converts the Error to a string representation
 function Error.toString(self: Error): string
 	if not self.source then
 		return pp(self.reason)
@@ -39,6 +47,7 @@ function Error.toString(self: Error): string
 	return `{pp(self:rootCause().reason)}: {pp(self.reason)}`
 end
 
+--- Converts the Error to a detailed debug string representation
 function Error.toDebugString(self: Error): string
 	local lines: { string } = {}
 	table.insert(lines, "Error: " .. pp(self:rootCause().reason))
@@ -66,6 +75,7 @@ function Error.toDebugString(self: Error): string
 	return table.concat(lines, "\n")
 end
 
+--- Returns the chain of Errors from this Error to the root cause
 function Error.chain(self: Error): { Error }
 	local chain: { Error } = {}
 	local current: Error? = self
@@ -76,6 +86,7 @@ function Error.chain(self: Error): { Error }
 	return chain
 end
 
+--- Returns the root cause Error in the chain
 function Error.rootCause(self: Error): Error
 	local current: Error = self
 	while current.source do
@@ -84,16 +95,8 @@ function Error.rootCause(self: Error): Error
 	return current
 end
 
-export type Error = setmetatable<{
-	read reason: Reason,
-	read source: Error?
-}, typeof(ErrorMt)>
-
+--- Error Class
 return table.freeze({
 	is = isError,
 	new = constructError,
-	toString = Error.toString,
-	toDebugString = Error.toDebugString,
-	chain = Error.chain,
-	rootCause = Error.rootCause,
 })
